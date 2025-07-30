@@ -1,6 +1,8 @@
 import numpy as np
 
 # Materiale- og geometriparametre
+# Her antager vi, at bjælken er lavet af stål
+# E er Youngs modul, I er det tværgående inertimoment, og Le er elementlængden
 E = 200e9        # Pa
 I = 6.67e-10     # m^4
 Le = 0.5         # m
