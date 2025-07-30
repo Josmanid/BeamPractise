@@ -15,6 +15,7 @@ F = np.array([0, 0, -100, 0, 0, 0])  # N
 
 # Node 0 er fastspændt, så vi fjerner frihedsgraderne d0 og d1
 # Derfor fjerner vi de første 2 rækker og kolonner fra K og de første 2 elementer fra F
+# github tjek
 F_reduced = F[2:]
 K_reduced = K[2:, 2:]
 
