@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Validering af FEM for cantilever bjælke ved fri ende
 def create_global_stiffness_matrix(n_elements, L_total, E, I):
     """
     Opretter global stivhedsmatrix for cantilever bjælke med n_elements
@@ -58,27 +59,20 @@ def create_global_stiffness_matrix(n_elements, L_total, E, I):
     return K_global, Le, factor
 
 def solve_fem(K_global, force_value, force_node):
-    """
-    Løser FEM systemet med randbetingelser
-    """
     n_dofs = K_global.shape[0]
-    
-    # Kraftvektor - kraft på den sidste node (fri ende)
     f = np.zeros(n_dofs)
-    last_node = (n_dofs // 2) - 1  # Sidste node index
-    f[2*last_node] = force_value  # Lodret kraft på fri ende
+    # Påfør kraft i lodret forskydning (u) på noden force_node
+    f[2 * force_node] = force_value
     
-    # Randbetingelser: node 0 er fastspændt (u=0, theta=0)
-    free_dofs = list(range(2, n_dofs))  # Alle DOFs undtagen de første to
+    # Fastspænding ved node 0: frihedsgrader 0 og 1 er låst
+    free_dofs = list(range(2, n_dofs))
     
-    # Reduceret system
     K_reduced = K_global[np.ix_(free_dofs, free_dofs)]
     f_reduced = f[free_dofs]
     
-    # Løs systemet
+    # Løs for displaceringer ved frie frihedsgrader
     d_reduced = np.linalg.solve(K_reduced, f_reduced)
     
-    # Komplet forskydningsvektor
     d_complete = np.zeros(n_dofs)
     d_complete[free_dofs] = d_reduced
     
@@ -94,7 +88,7 @@ def analytical_solution(P, L, E, I, x):
 L_total = 1.0  # m
 E = 200e9      # Pa
 I = 6.67e-10   # m^4
-force = -100   # N
+force = -100   # N negativ kraft dvs en nedadgående kraft
 
 print("="*60)
 print("SAMMENLIGNING AF FORSKELLIGE ELEMENT-ANTAL")
@@ -115,7 +109,7 @@ for n_elem in [2, 4, 8]:
         print(K)
     
     # Løs systemet (kraft på fri ende - sidste node)
-    d = solve_fem(K, force, 0)  # Parameter bruges ikke længere
+    d = solve_fem(K, force, n_elem)  # Kraft på sidste node
     
     # Udtræk forskydninger ved noderne
     nodes_x = np.linspace(0, L_total, n_elem + 1)
@@ -131,7 +125,7 @@ for n_elem in [2, 4, 8]:
     print(f"Forskydning ved fri ende: {displacements[-1]:.6f} m")
 
 # Analytisk løsning ved fri ende
-analytical_tip = analytical_solution(abs(force), L_total, E, I, L_total)
+analytical_tip = analytical_solution(force, L_total, E, I, L_total) 
 print(f"\nAnalytisk løsning ved fri ende: {analytical_tip:.6f} m")
 
 print("\n" + "="*60)
@@ -140,17 +134,17 @@ print("="*60)
 
 for n_elem in [2, 4, 8]:
     tip_disp = results[n_elem]['tip_displacement']
-    error = abs(tip_disp - analytical_tip) / analytical_tip * 100
+    error = abs(tip_disp - analytical_tip) / abs(analytical_tip) * 100
     print(f"{n_elem:2d} elementer: u_tip = {tip_disp:.6f} m, Fejl = {error:.2f}%")
 
 # Plot resultater
-plt.figure(figsize=(12, 8))
+plt.figure(figsize=(6, 6))
 
 # Plot 1: Deformation comparison
-plt.subplot(2, 2, 1)
+
 x_analytical = np.linspace(0, L_total, 100)
-u_analytical = [analytical_solution(abs(force), L_total, E, I, x) for x in x_analytical]
-u_analytical = [-u for u in u_analytical]  # Negativ for nedad retning
+u_analytical = [analytical_solution(force, L_total, E, I, x) for x in x_analytical]
+
 
 plt.plot(x_analytical, u_analytical, 'k-', linewidth=2, label='Analytisk')
 
@@ -165,53 +159,5 @@ plt.title('Deformation af cantilever bjælke')
 plt.legend()
 plt.grid(True, alpha=0.3)
 
-# Plot 2: Konvergens
-plt.subplot(2, 2, 2)
-n_elements_list = [2, 4, 8, 16, 32]
-tip_displacements = []
-
-for n_elem in n_elements_list:
-    if n_elem in results:
-        tip_displacements.append(abs(results[n_elem]['tip_displacement']))
-    else:
-        # Beregn for flere elementer
-        K, _, _ = create_global_stiffness_matrix(n_elem, L_total, E, I)
-        d = solve_fem(K, force, 0)  # Parameter bruges ikke
-        tip_displacements.append(abs(d[-2]))  # Sidste node, u DOF
-
-plt.semilogx(n_elements_list, tip_displacements, 'bo-', label='FEM')
-plt.axhline(y=analytical_tip, color='red', linestyle='--', label='Analytisk')
-plt.xlabel('Antal elementer')
-plt.ylabel('Forskydning ved fri ende (m)')
-plt.title('Konvergens studie')
-plt.legend()
-plt.grid(True, alpha=0.3)
-
-# Plot 3: Matrix sparsity pattern for 8 elementer
-plt.subplot(2, 2, 3)
-K_8, _, _ = create_global_stiffness_matrix(8, L_total, E, I)
-plt.spy(K_8, markersize=3)
-plt.title('Stivhedsmatrix struktur (8 elementer)')
-plt.xlabel('Column')
-plt.ylabel('Row')
-
-# Plot 4: Error vs elements
-plt.subplot(2, 2, 4)
-errors = []
-for i, n_elem in enumerate(n_elements_list):
-    error = abs(tip_displacements[i] - analytical_tip) / analytical_tip * 100
-    errors.append(error)
-
-plt.loglog(n_elements_list, errors, 'ro-')
-plt.xlabel('Antal elementer')
-plt.ylabel('Relativ fejl (%)')
-plt.title('Fejl vs. element antal')
-plt.grid(True, alpha=0.3)
-
-plt.tight_layout()
+# så skal den vises
 plt.show()
-
-print(f"\nMatrix dimensioner:")
-for n_elem in [2, 4, 8]:
-    n_dofs = (n_elem + 1) * 2
-    print(f"{n_elem} elementer: {n_dofs}×{n_dofs} matrix")
