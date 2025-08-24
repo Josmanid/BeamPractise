@@ -11,7 +11,7 @@ Le = 0.5         # m
 factor = (E * I) / (Le ** 3)  # N/m
 print("Konstantfaktor:", factor)
 
-# Lokal stivhedsmatrix (uden EI/L^3 faktoren)
+# Lokal stivhedsmatrix (uden EI/L^3 Konstantfaktoren)
 k_local_base = np.array([
     [12,     3,   -12,     3],
     [3,      1,    -3,   0.5],

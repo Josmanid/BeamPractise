@@ -61,10 +61,10 @@ def create_global_stiffness_matrix(n_elements, L_total, E, I):
 def solve_fem(K_global, force_value, force_node):
     n_dofs = K_global.shape[0]
     f = np.zeros(n_dofs)
-    # Påfør kraft i lodret forskydning (u) på noden force_node
+    # Påfør en hvis kraft i lodret(nedad) forskydning (u) på noden force_node
     f[2 * force_node] = force_value
     
-    # Fastspænding ved node 0: frihedsgrader 0 og 1 er låst
+    # Fastspænding ved node 0: frihedsgrader 0 og 1 er låst, så dem gider vi ikke regne med
     free_dofs = list(range(2, n_dofs))
     
     K_reduced = K_global[np.ix_(free_dofs, free_dofs)]
@@ -78,6 +78,7 @@ def solve_fem(K_global, force_value, force_node):
     
     return d_complete
 
+# Sammelinging med analytisk løsning som lært i folkeskolen
 def analytical_solution(P, L, E, I, x):
     """
     Analytisk løsning for cantilever bjælke
@@ -140,7 +141,7 @@ for n_elem in [2, 4, 8]:
 # Plot resultater
 plt.figure(figsize=(6, 6))
 
-# Plot 1: Deformation comparison
+# Plot 1: Deformation sammenligning
 
 x_analytical = np.linspace(0, L_total, 100)
 u_analytical = [analytical_solution(force, L_total, E, I, x) for x in x_analytical]
